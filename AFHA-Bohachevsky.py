@@ -1,0 +1,83 @@
+import random
+import numpy as np
+import time
+import csv
+
+
+# bohachevsky function
+def bohachevsky(x):
+    term1 = np.power(x[0], 2)
+    term2 = 2 * np.power(x[1], 2)
+    term3 = -0.3 * np.cos(3 * np.pi * x[0])
+    term4 = -0.4 * np.cos(4 * np.pi * x[1])
+    return term1 + term2 + term3 + term4 + 0.7
+
+
+def archer_fish_hunter(func, n, dim, max_iter, bounds):
+    # Initialize the population within the specified bounds
+    pop = np.random.uniform([b[0] for b in bounds], [b[1] for b in bounds], size=(n, dim))
+
+    # Initialize the best solution and its fitness
+    best_fish = pop[0]
+    best_fitness = func(best_fish)
+
+    # Initialize lists to store solutions and fitness values
+    all_solutions = [pop.copy()]  # لیستی برای ذخیره تمام موقعیت‌ها
+    all_fitness = [np.apply_along_axis(func, 1, pop).copy()]  # لیستی برای ذخیره تمام مقادیر تابع هدف
+
+    # Initialize the execution time
+    start_time = time.time()
+
+    # Perform the main loop for the specified number of iterations
+    for i in range(max_iter):
+        # Update the position of each fish by adding a random step
+        step = np.random.uniform(-1, 1, size=(n, dim))
+        pop += step
+
+        # Keep the fish within the bounds of the search space
+        for d in range(dim):
+            pop[:, d] = np.clip(pop[:, d], bounds[d][0], bounds[d][1])
+
+        # Evaluate the fitness of each fish
+        fitness = np.apply_along_axis(func, 1, pop)
+
+        # Update the best solution if necessary
+        idx = np.argmin(fitness)
+        if fitness[idx] < best_fitness:
+            best_fish = pop[idx]
+            best_fitness = fitness[idx]
+
+        # افزودن اطلاعات به لیست‌ها در هر دور
+        all_solutions.append(pop.copy())
+        all_fitness.append(fitness.copy())
+
+    # Calculate the execution time
+    end_time = time.time()
+    execution_time = end_time - start_time
+
+    # Return the best solution, its fitness, and the lists of solutions and fitness values
+    return best_fish, best_fitness, all_solutions, all_fitness, execution_time
+
+
+# Run the algorithm with functions and store the results in a CSV file
+with open('AFHA-Bohachevski-D4-25000.csv', mode='w') as results_file:
+    results_writer = csv.writer(results_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    results_writer.writerow(['Iteration', 'Best_Solutions', 'Best_Fitness', 'Execution_Time'])
+
+    dim = 4
+    start_time = time.time()
+    Bobounds = [(-100, 100)] * dim
+    best_fish, best_fitness, all_solutions, all_fitness, execution_time = archer_fish_hunter(func=bohachevsky, n=50,
+                                                                                             dim=4, max_iter=25000,
+                                                                                             bounds=Bobounds)
+    end_time = time.time()  # زمان پایان اجرا
+    execution_time = end_time - start_time
+    for t in range(len(all_solutions)):
+        best_fitness_t = min(all_fitness[t])
+        best_solution_t = all_solutions[t][np.argmin(all_fitness[t]), :]
+
+        # چاپ اطلاعات به همراه ذخیره در فایل CSV
+        print(f"Iteration {t + 1}: Best Fitness = {best_fitness_t}")
+        print(f"Best Solutions: {best_solution_t}")
+
+        results_writer.writerow([t + 1, best_solution_t.tolist(), best_fitness_t, execution_time])
